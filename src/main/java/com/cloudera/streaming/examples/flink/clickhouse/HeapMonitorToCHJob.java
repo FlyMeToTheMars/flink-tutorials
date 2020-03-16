@@ -8,6 +8,7 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.io.jdbc.JDBCAppendTableSink;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.types.Row;
@@ -27,8 +28,10 @@ public class HeapMonitorToCHJob {
         final String dBUrl = params.get("ch.dBUrl", "jdbc:clickhouse://clickhouse-dev:8001/test");
         final String username = params.get("ch.username", "root");
         final String password = params.get("ch.password", "");
+        final int batchSize = params.getInt("ch.batchSize", 15);
+
         if ("".equals(password)) {
-            System.err.println("require ch.password parameter !");
+            System.err.println("require --ch.password parameter !");
             System.exit(-1);
         }
 
@@ -36,8 +39,10 @@ public class HeapMonitorToCHJob {
 
         // Create and configure the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//        env.setParallelism(1);
+        // 设定检查点
         env.enableCheckpointing(10_000);
+        // 设定 eventTime
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // Define our source
         DataStream<HeapMetrics> heapStats = env.addSource(new HeapMonitorSource(100))
@@ -67,7 +72,7 @@ public class HeapMonitorToCHJob {
                 BasicTypeInfo.STRING_TYPE_INFO
         };
 
-        //###############定义clickhouse JDBC sink##############
+        // define clickhouse JDBC sink
         JDBCAppendTableSink jdbcSink = JDBCAppendTableSink.builder()
                 .setDrivername(divername)
                 .setDBUrl(dBUrl)
@@ -75,7 +80,7 @@ public class HeapMonitorToCHJob {
                 .setPassword(password)
                 .setQuery("insert into heap_metrics(time,area,used,max,ratio,jobId,hostname) values(?, ?, ?, ?, ?, ?, ?)")
                 .setParameterTypes(fieldTypes)
-                .setBatchSize(15)
+                .setBatchSize(batchSize)
                 .build();
 
         jdbcSink.consumeDataStream(ds).name("ClickHouse Sink");
