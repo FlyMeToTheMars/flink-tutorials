@@ -12,6 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flink.version>1.9.1-csa1.1.0.0</flink.version>
+        <!--        <flink.version>1.9.1</flink.version>-->
         <java.version>1.8</java.version>
         <scala.binary.version>2.11</scala.binary.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -26,17 +27,30 @@
     </repositories>
 
     <dependencies>
+        <!-- clickhouse-jdbc 和 clickhouse-native-jdbc 驱动只能用一个
+        前缀都是 jdbc.jdbc:clickhouse  -->
+        <!--        <dependency>-->
+        <!--            <groupId>ru.yandex.clickhouse</groupId>-->
+        <!--            <artifactId>clickhouse-jdbc</artifactId>-->
+        <!--            <version>0.2.4</version>-->
+        <!--        </dependency>-->
 
         <dependency>
-            <groupId>ru.yandex.clickhouse</groupId>
-            <artifactId>clickhouse-jdbc</artifactId>
-            <version>0.2.4</version>
+            <groupId>com.github.housepower</groupId>
+            <artifactId>clickhouse-native-jdbc</artifactId>
+            <version>2.0-stable</version>
         </dependency>
 
         <dependency>
             <groupId>ru.ivi.opensource</groupId>
             <artifactId>flink-clickhouse-sink</artifactId>
             <version>1.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.1.21</version>
         </dependency>
 
         <dependency>

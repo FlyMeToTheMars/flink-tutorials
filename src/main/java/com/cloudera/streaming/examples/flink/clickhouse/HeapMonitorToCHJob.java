@@ -24,8 +24,8 @@ public class HeapMonitorToCHJob {
 
         // Read the parameters from the commandline
         ParameterTool params = Utils.parseArgs(args);
-        final String divername = params.get("ch.divername", "ru.yandex.clickhouse.ClickHouseDriver");
-        final String dBUrl = params.get("ch.dBUrl", "jdbc:clickhouse://clickhouse-dev:8001/test");
+        final String divername = params.get("ch.divername", "com.github.housepower.jdbc.ClickHouseDriver");
+        final String dBUrl = params.get("ch.dBUrl", "jdbc:clickhouse://clickhouse-dev:9001/test");
         final String username = params.get("ch.username", "root");
         final String password = params.get("ch.password", "");
         final int batchSize = params.getInt("ch.batchSize", 15);
@@ -39,6 +39,7 @@ public class HeapMonitorToCHJob {
 
         // Create and configure the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//        env.setParallelism(1);
         // 设定检查点
         env.enableCheckpointing(10_000);
         // 设定 eventTime
