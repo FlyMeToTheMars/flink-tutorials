@@ -94,8 +94,7 @@ public class Utils {
 
   public static String decrypt(String input) {
     Preconditions.checkNotNull(input, "key is null");
-//        return EncryptTool.getInstance(getConfiguration()).decrypt(input);
-    return input;
+    return EncryptTool.getInstance(getConfiguration()).decrypt(input);
   }
 
   public static Configuration getConfiguration() {
