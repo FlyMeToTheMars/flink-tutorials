@@ -1,10 +1,9 @@
-package org.apache.nifi.parquet.utils;
+package io.github.streaming.examples.flink.utils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -17,7 +16,7 @@ import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
-public class ParquetUtils  implements Serializable {
+public class ParquetUtils implements Serializable {
 
   public static final String ROW_GROUP_SIZE = "row-group-size";
 //            .displayName("Row Group Size")
@@ -180,10 +179,13 @@ public class ParquetUtils  implements Serializable {
 
   public static void applyCommonConfig(final ParquetWriter.Builder<?, ?> builder,
       final ParquetConfig parquetConfig) {
-//    builder.withConf(conf);
     builder.withCompressionCodec(parquetConfig.getCompressionCodec());
-
     // Optional properties
+
+    // 1.11 新加参数 page index
+    if (parquetConfig.getRowGroupSize() != null) {
+      builder.withPageRowCountLimit(parquetConfig.getPageRowCountLimit());
+    }
 
     if (parquetConfig.getRowGroupSize() != null) {
       builder.withRowGroupSize(parquetConfig.getRowGroupSize());

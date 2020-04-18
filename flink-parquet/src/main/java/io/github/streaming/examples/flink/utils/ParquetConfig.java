@@ -1,4 +1,4 @@
-package org.apache.nifi.parquet.utils;
+package io.github.streaming.examples.flink.utils;
 
 import java.io.Serializable;
 import org.apache.parquet.column.ParquetProperties;
@@ -7,6 +7,7 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 public class ParquetConfig  implements Serializable {
 
+    private Integer pageRowCountLimit;
     private Integer rowGroupSize;
     private Integer pageSize;
     private Integer dictionaryPageSize;
@@ -19,6 +20,14 @@ public class ParquetConfig  implements Serializable {
     private ParquetProperties.WriterVersion writerVersion;
     private ParquetFileWriter.Mode writerMode;
     private CompressionCodecName compressionCodec;
+
+    public Integer getPageRowCountLimit() {
+        return pageRowCountLimit;
+    }
+
+    public void setPageRowCountLimit(Integer pageRowCountLimit) {
+        this.pageRowCountLimit = pageRowCountLimit;
+    }
 
     public Integer getRowGroupSize() {
         return rowGroupSize;

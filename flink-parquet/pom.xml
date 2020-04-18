@@ -21,12 +21,12 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
   </properties>
 
-<!--    <repositories>-->
-<!--      <repository>-->
-<!--        <id>cloudera</id>-->
-<!--        <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>-->
-<!--      </repository>-->
-<!--    </repositories>-->
+  <!--    <repositories>-->
+  <!--      <repository>-->
+  <!--        <id>cloudera</id>-->
+  <!--        <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>-->
+  <!--      </repository>-->
+  <!--    </repositories>-->
 
   <dependencies>
 
@@ -52,13 +52,7 @@
       <version>${parquet.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-core</artifactId>
-      <version>${flink.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
+    <!-- Flink library -->
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-java</artifactId>
@@ -72,8 +66,14 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Add connector dependencies here. They must be in the default scope (compile). -->
+    <!-- Metric -->
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>4.1.0</version>
+    </dependency>
 
+    <!-- Add connector dependencies here. They must be in the default scope (compile). -->
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-connector-kafka_2.11</artifactId>
@@ -81,10 +81,15 @@
     </dependency>
 
     <!-- Add formats dependencies here. They must be in the default scope (compile). -->
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-parquet_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-avro</artifactId>
       <version>${flink.version}</version>
     </dependency>
 
@@ -116,17 +121,9 @@
     </dependency>
 
     <!-- test dependencies -->
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
-      <version>${flink.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-avro</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
@@ -208,7 +205,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>
-                    io.github.flink.examples.flink.ParquetPipeline
+                    io.github.streaming.examples.flink.ParquetFileJob
                   </mainClass>
                 </transformer>
               </transformers>
@@ -280,20 +277,18 @@
       <dependencies>
         <dependency>
           <groupId>org.apache.flink</groupId>
-          <artifactId>flink-core</artifactId>
-          <version>${flink.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.flink</groupId>
           <artifactId>flink-java</artifactId>
           <version>${flink.version}</version>
-          <scope>compile</scope>
         </dependency>
         <dependency>
           <groupId>org.apache.flink</groupId>
           <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
           <version>${flink.version}</version>
-          <scope>compile</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.flink</groupId>
+          <artifactId>flink-shaded-hadoop-2</artifactId>
+          <version>2.8.3-10.0</version>
         </dependency>
       </dependencies>
     </profile>
