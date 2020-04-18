@@ -22,33 +22,32 @@ public class ParquetFileJob {
 
   public static void main(String[] args) throws Exception {
 
-    // Read the parameters from the commandline
+    // 读取命令行参数
     ParameterTool params = Utils.parseArgs(args);
 
-    // create env
-    final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    // 并行数
-    env.setParallelism(2);
-    // 检查点
-    env.enableCheckpointing(60000);
-
-    DataStream<ItemTransaction> source =
-        env.addSource(new ItemTransactionGeneratorSource(params))
-            .name("Item Transaction Generator");
-
-    // add sink
-    final Configuration conf = new Configuration();
-    FileSystem.initialize(conf);
-
+    // 参数检查
     final File folder = new File(params.getRequired(K_HDFS_OUTPUT));
-
     Path basePath = Path.fromLocalFile(folder);
     final FileSystem fs = basePath.getFileSystem();
     if (!fs.exists(basePath)) {
       fs.mkdirs(basePath);
     }
     LOG.info("basePath: {}", basePath);
-    // 构建 parquetWriter
+
+    // 1. 执行环境
+    final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    // 并行数
+    env.setParallelism(2);
+    // 检查点
+    env.enableCheckpointing(60000);
+
+    // 2. Add Source
+    DataStream<ItemTransaction> source =
+        env.addSource(new ItemTransactionGeneratorSource(params))
+            .name("Item Transaction Generator");
+
+    // 3. Add Sink
+    // 注意： Bulk方式默认是按检查点策略滚动的
     source.keyBy("itemId")
         .addSink(BulkSink.createParquetBulkSink(basePath, ItemTransaction.class, params))
         .name("Transaction HDFS Sink");
