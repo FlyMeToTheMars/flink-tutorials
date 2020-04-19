@@ -9,6 +9,7 @@ public class Constants {
     public static final String K_KAFKA_TOPIC = "kafkaTopic" ;
     public static final String K_HDFS_OUTPUT = "hdfsOutput" ;
 
+    public static final String EVENT_TIME_KEY = "event.time";
 
     public static final String K_PROPERTIES_FILE = "properties.file" ;
 
