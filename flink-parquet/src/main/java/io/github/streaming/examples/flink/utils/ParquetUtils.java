@@ -18,6 +18,8 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 public class ParquetUtils implements Serializable {
 
+  public static final String PAGE_ROW_COUNT_LIMIT = "page-row-count-limit";
+
   public static final String ROW_GROUP_SIZE = "row-group-size";
 //            .displayName("Row Group Size")
 
@@ -90,6 +92,18 @@ public class ParquetUtils implements Serializable {
     parquetConfig.setCompressionCodec(codecName);
 
     // Optional properties
+
+    if (context.containsKey(PAGE_ROW_COUNT_LIMIT)) {
+      try {
+        final int pageRowCountLimit = NumberUtils.toInt(context.getProperty(PAGE_ROW_COUNT_LIMIT));
+        if (pageRowCountLimit > 0) {
+          parquetConfig.setPageRowCountLimit(pageRowCountLimit);
+        }
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException(
+            "Invalid data size for " + PAGE_ROW_COUNT_LIMIT, e);
+      }
+    }
 
     if (context.containsKey(ROW_GROUP_SIZE)) {
       try {
