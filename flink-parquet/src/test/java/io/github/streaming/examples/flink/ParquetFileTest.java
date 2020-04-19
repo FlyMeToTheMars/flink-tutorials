@@ -1,10 +1,14 @@
 package io.github.streaming.examples.flink;
 
 import com.google.common.collect.Lists;
+import io.github.streaming.examples.flink.utils.parquet.Parquet;
+import io.github.streaming.examples.flink.utils.parquet.ParquetReaderUtils;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.parquet.example.data.simple.SimpleGroup;
 import org.apache.parquet.tools.Main;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,14 +29,33 @@ public class ParquetFileTest {
       System.out.println("File Not Found!" + inputPath.toUri());
       System.exit(-1);
     }
+  }
 
+
+  @Test
+  public void allmeta() throws IOException {
+    Parquet parquet = ParquetReaderUtils.getParquetData(inputPath.toUri().getPath());
+
+    System.out.println("Schema: " + parquet.getSchema());
+
+    List<SimpleGroup> data = parquet.getData();
+    for (SimpleGroup group : data) {
+
+    }
+
+  }
+
+  @Test
+  public void showUsage() throws IOException {
+    String[] args = Lists.newArrayList("-h").toArray(new String[]{});
+    Main.main(args);
   }
 
   @Test
   public void showSchema() throws IOException {
     String[] args = Lists.newArrayList("schema", "-d", inputPath.toUri().getPath())
         .toArray(new String[]{});
-    org.apache.parquet.tools.Main.main(args);
+    Main.main(args);
   }
 
   @Test
@@ -45,6 +68,13 @@ public class ParquetFileTest {
   @Test
   public void rowCount() throws IOException {
     String[] args = Lists.newArrayList("rowcount", "-d", inputPath.toUri().getPath())
+        .toArray(new String[]{});
+    Main.main(args);
+  }
+
+  @Test
+  public void dump() throws IOException {
+    String[] args = Lists.newArrayList("dump", inputPath.toUri().getPath())
         .toArray(new String[]{});
     Main.main(args);
   }

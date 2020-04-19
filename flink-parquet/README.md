@@ -16,7 +16,15 @@
 
 文档：[Parquet 资料](http://note.youdao.com/noteshare?id=1c5028c4f5a1e47b7dc64e2d72d2a30f)
 
+## 写入注意事项
++ Row group size: An optimized read setup would be: 1GB row groups, 1GB HDFS block size, 1 HDFS block per HDFS file.
++ Data page size: We recommend 8KB for page sizes.
+https://parquet.apache.org/documentation/latest/
++ 第一列放置查询常用查询字段，这块是连续的
 
+### How Parquet Data Files Are Organized
+在数据文件中，对一组行的数据进行重新排列，以便将第一列中的所有值组织在一个连续的块中，然后将第二列中的所有值组织在一起，依此类推。将来自同一列的值放在一起，使得Impala可以对该列中的值使用有效的压缩技术。
+https://docs.cloudera.com/runtime/7.1.0/impala-reference/topics/impala-parquet.html
 
 ## Page Index 加速查询
 + [Speeding Up SELECT Queries with Parquet Page Indexes](https://blog.cloudera.com/speeding-up-select-queries-with-parquet-page-indexes/)

@@ -173,7 +173,7 @@ public abstract class BaseJob {
   protected static Path getOutPath(ParameterTool param) throws IOException {
     final String hdfsOutput = param.getRequired(K_HDFS_OUTPUT);
     Path basePath;
-    if (param.getBoolean("output.local")) {
+    if (param.has("output.local") && param.getBoolean("output.local")) {
       basePath = Path.fromLocalFile(new File(hdfsOutput));
     } else {
       basePath = new Path(hdfsOutput);
