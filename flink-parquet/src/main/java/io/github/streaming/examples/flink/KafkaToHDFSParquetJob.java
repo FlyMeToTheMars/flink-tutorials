@@ -27,6 +27,11 @@ import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 消费 Kafka 数据写 Parquet 文件
+ *
+ * @author chufucun
+ */
 public class KafkaToHDFSParquetJob {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaToHDFSParquetJob.class);
@@ -56,6 +61,12 @@ public class KafkaToHDFSParquetJob {
     env.execute("Flink Streaming Parquet Job");
   }
 
+  /**
+   * 创建执行环境
+   *
+   * @param params 命令行参数
+   * @return
+   */
   private static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -81,6 +92,13 @@ public class KafkaToHDFSParquetJob {
     return env;
   }
 
+  /**
+   * 创建读取数据流
+   *
+   * @param params 命令行参数
+   * @param env    执行环境
+   * @return
+   */
   private static DataStream<ItemTransaction> readTransactionStream(ParameterTool params,
       StreamExecutionEnvironment env) {
     // We read the ItemTransaction objects directly using the schema
@@ -106,6 +124,13 @@ public class KafkaToHDFSParquetJob {
         .uid("Kafka Transaction Source");
   }
 
+  /**
+   * 获得输出路径
+   *
+   * @param param 命令行参数
+   * @return
+   * @throws IOException
+   */
   private static Path getOutPath(ParameterTool param) throws IOException {
     final String hdfsOutput = param.getRequired(K_HDFS_OUTPUT);
     Path basePath;
