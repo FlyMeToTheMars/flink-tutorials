@@ -3,6 +3,7 @@ package io.github.streaming.examples.flink;
 import static io.github.streaming.examples.flink.utils.Constants.EVENT_TIME_KEY;
 import static io.github.streaming.examples.flink.utils.Constants.K_HDFS_OUTPUT;
 import static io.github.streaming.examples.flink.utils.Constants.K_KAFKA_TOPIC;
+import static io.github.streaming.examples.flink.utils.Constants.OUTPUT_USE_LOC;
 import static io.github.streaming.examples.flink.utils.ParquetUtils.applyCommonConfig;
 import static io.github.streaming.examples.flink.utils.ParquetUtils.createParquetConfig;
 
@@ -17,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.reflect.ReflectData;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
@@ -47,7 +47,6 @@ public abstract class BaseJob {
    * 创建执行环境
    *
    * @param params 命令行参数
-   * @return
    */
   protected static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -78,8 +77,7 @@ public abstract class BaseJob {
    * 创建读取 Transaction 数据流，指定时间和水位线
    *
    * @param params 命令行参数
-   * @param env    执行环境
-   * @return
+   * @param env 执行环境
    */
   protected static DataStream<ItemTransaction> readTransactionStream(ParameterTool params,
       StreamExecutionEnvironment env) {
@@ -113,9 +111,8 @@ public abstract class BaseJob {
    * 创建 Parquet Bulk Sink
    *
    * @param basePath 基础路径
-   * @param type     写入的类的类型
-   * @param params   参数
-   * @return
+   * @param type 写入的类的类型
+   * @param params 参数
    */
   public static StreamingFileSink createParquetBulkSink(Path basePath, Class type,
       ParameterTool params) {
@@ -135,7 +132,7 @@ public abstract class BaseJob {
   /**
    * 为给定类型创建一个 ParquetWriterFactory，Parquet Writer 将使用Avro来反射性地创建该类型的 schema，并使用该模式来编写列类型数据
    *
-   * @param type          写入的类的类型.
+   * @param type 写入的类的类型.
    * @param parquetConfig Parquet 配置.
    */
   public static <T> ParquetWriterFactory<T> createWriterFactory(Class<T> type,
@@ -167,13 +164,11 @@ public abstract class BaseJob {
    * 获得输出路径
    *
    * @param param 命令行参数
-   * @return
-   * @throws IOException
    */
   protected static Path getOutPath(ParameterTool param) throws IOException {
     final String hdfsOutput = param.getRequired(K_HDFS_OUTPUT);
     Path basePath;
-    if (param.has("output.local") && param.getBoolean("output.local")) {
+    if (param.has(OUTPUT_USE_LOC) && param.getBoolean(OUTPUT_USE_LOC)) {
       basePath = Path.fromLocalFile(new File(hdfsOutput));
     } else {
       basePath = new Path(hdfsOutput);

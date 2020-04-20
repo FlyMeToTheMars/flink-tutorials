@@ -27,7 +27,6 @@ public class ParquetFileTest {
 
     if (!inputPath.getFileSystem(conf).exists(inputPath)) {
       System.out.println("File Not Found!" + inputPath.toUri());
-      System.exit(-1);
     }
   }
 
