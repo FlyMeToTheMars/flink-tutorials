@@ -10,12 +10,15 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +34,8 @@ public class ParquetFileJob extends BaseJob {
 
     // 1. 执行环境
     final StreamExecutionEnvironment env = createExecutionEnvironment(params);
-    env.setParallelism(2);
+    env.setParallelism(1);
+    StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
     // 2. 自定义数据生成器
     DataStream<ItemTransaction> source = env
@@ -41,14 +45,11 @@ public class ParquetFileJob extends BaseJob {
 
     // 3. Add Sink
     // 注意： Bulk方式默认是按检查点策略滚动的
-//    source.keyBy("itemId")
-//        .addSink(createParquetBulkSink(basePath, ItemTransaction.class, params))
-//        .name("Transaction HDFS Sink");
-
-// sort events
-    source.keyBy("itemId")
-//        .keyBy((ItemTransaction event) -> event.itemId).process(new SortFunction())
-        .print();
+    Path basePath = getOutPath(params);
+    source
+        .keyBy("itemId")
+        .addSink(createParquetBulkSink(basePath, ItemTransaction.class, params))
+        .name("Transaction HDFS Sink");
 
     env.execute("Flink Streaming Parquet Job");
     LOG.info("Flink Streaming Parquet Job");
