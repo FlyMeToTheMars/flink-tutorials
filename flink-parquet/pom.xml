@@ -211,7 +211,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>
-                    io.github.streaming.examples.flink.ParquetFileJob
+                    io.github.streaming.examples.flink.KafkaToHDFSParquetJob
                   </mainClass>
                 </transformer>
               </transformers>
