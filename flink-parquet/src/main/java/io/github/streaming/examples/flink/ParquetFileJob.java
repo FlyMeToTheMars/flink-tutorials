@@ -3,22 +3,21 @@ package io.github.streaming.examples.flink;
 import com.cloudera.streaming.examples.flink.operators.ItemTransactionGeneratorSource;
 import com.cloudera.streaming.examples.flink.types.ItemTransaction;
 import io.github.streaming.examples.flink.utils.Utils;
-import java.util.PriorityQueue;
-import org.apache.flink.api.common.state.ValueState;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeHint;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.compress.utils.Lists;
+import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
-import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
-import org.apache.flink.streaming.api.watermark.Watermark;
-import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
+import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,20 +33,23 @@ public class ParquetFileJob extends BaseJob {
 
     // 1. 执行环境
     final StreamExecutionEnvironment env = createExecutionEnvironment(params);
-    env.setParallelism(1);
-    StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
+    env.setParallelism(2);
 
     // 2. 自定义数据生成器
     DataStream<ItemTransaction> source = env
         .addSource(new ItemTransactionGeneratorSource(params))
-        .name("Item Transaction Generator")
-        .assignTimestampsAndWatermarks(new TransactionAssigner());
+        .name("Item Transaction Generator");
 
     // 3. Add Sink
     // 注意： Bulk方式默认是按检查点策略滚动的
+    long cpInterval = params.getLong("checkpoint.interval.millis", TimeUnit.MINUTES.toMillis(1));
     Path basePath = getOutPath(params);
     source
         .keyBy("itemId")
+//        .timeWindow(Time.milliseconds(cpInterval))
+        .window(TumblingProcessingTimeWindows.of(Time.milliseconds(cpInterval)))
+        .process(new SortFunction())
+        .name("Sort by itemId")
         .addSink(createParquetBulkSink(basePath, ItemTransaction.class, params))
         .name("Transaction HDFS Sink");
 
@@ -55,64 +57,62 @@ public class ParquetFileJob extends BaseJob {
     LOG.info("Flink Streaming Parquet Job");
   }
 
-  public static class SortFunction extends
-      KeyedProcessFunction<String, ItemTransaction, ItemTransaction> {
 
-    private ValueState<PriorityQueue<ItemTransaction>> queueState = null;
+  /**
+   * 窗口内计算，这种方式会会降低 page index的范围（大部分情况下一个itemid占用一个page index） 兼顾性能要求
+   *
+   * ProcessAllWindowFunction 能实现排序，有瓶颈
+   */
+  private static class SortFunction extends
+      ProcessWindowFunction<ItemTransaction, Object, Tuple, TimeWindow> {
 
+    /**
+     * Evaluates the window and outputs none or several elements.
+     *
+     * @param tuple The key for which this window is evaluated.
+     * @param context The context in which the window is being evaluated.
+     * @param elements The elements in the window being evaluated.
+     * @param out A collector for emitting elements.
+     * @throws Exception The function may throw exceptions to fail the program and trigger
+     * recovery.
+     */
     @Override
-    public void open(Configuration config) {
-      ValueStateDescriptor<PriorityQueue<ItemTransaction>> descriptor = new ValueStateDescriptor<>(
-          // state name
-          "sorted-events",
-          // type information of state
-          TypeInformation.of(new TypeHint<PriorityQueue<ItemTransaction>>() {
-          }));
-      queueState = getRuntimeContext().getState(descriptor);
-    }
-
-    @Override
-    public void processElement(ItemTransaction event, Context context,
-        Collector<ItemTransaction> out) throws Exception {
-      TimerService timerService = context.timerService();
-
-      if (context.timestamp() > timerService.currentWatermark()) {
-        PriorityQueue<ItemTransaction> queue = queueState.value();
-        if (queue == null) {
-          queue = new PriorityQueue<>(10);
-        }
-        queue.add(event);
-        queueState.update(queue);
-        timerService.registerEventTimeTimer(event.ts);
-      }
-    }
-
-    @Override
-    public void onTimer(long timestamp, OnTimerContext context, Collector<ItemTransaction> out)
-        throws Exception {
-      PriorityQueue<ItemTransaction> queue = queueState.value();
-      Long watermark = context.timerService().currentWatermark();
-      ItemTransaction head = queue.peek();
-      while (head != null && head.ts <= watermark) {
-        out.collect(head);
-        queue.remove(head);
-        head = queue.peek();
-      }
+    public void process(Tuple tuple, Context context, Iterable<ItemTransaction> elements,
+        Collector<Object> out) throws Exception {
+      elements.forEach(out::collect);
     }
   }
 
-  public static class TransactionAssigner implements
-      AssignerWithPunctuatedWatermarks<ItemTransaction> {
+  /**
+   * 窗口内全排序
+   */
+  private static class SortAllFunction extends
+      ProcessAllWindowFunction<ItemTransaction, Object, TimeWindow> {
 
+    /**
+     * Evaluates the window and outputs none or several elements.
+     *
+     * @param context The context in which the window is being evaluated.
+     * @param elements The elements in the window being evaluated.
+     * @param out A collector for emitting elements.
+     * @throws Exception The function may throw exceptions to fail the program and trigger
+     * recovery.
+     */
     @Override
-    public long extractTimestamp(ItemTransaction event, long previousElementTimestamp) {
-      return event.ts;
-    }
-
-    @Override
-    public Watermark checkAndGetNextWatermark(ItemTransaction event, long extractedTimestamp) {
-      // simply emit a watermark with every event
-      return new Watermark(extractedTimestamp - 30000);
+    public void process(Context context, Iterable<ItemTransaction> elements,
+        Collector<Object> out) throws Exception {
+      List<ItemTransaction> list = Lists.newArrayList();
+      elements.forEach(list::add);
+      Collections.sort(list, new Comparator<ItemTransaction>() {
+        @Override
+        public int compare(ItemTransaction o1, ItemTransaction o2) {
+          if (o1 != null && o2 != null) {
+            return o1.itemId.compareTo(o2.itemId);
+          }
+          return 0;
+        }
+      });
+      list.forEach(out::collect);
     }
   }
 }

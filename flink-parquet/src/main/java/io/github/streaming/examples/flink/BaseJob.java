@@ -19,10 +19,12 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.reflect.ReflectData;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.formats.parquet.ParquetBuilder;
 import org.apache.flink.formats.parquet.ParquetWriterFactory;
+import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -35,6 +37,7 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.io.OutputFile;
+import scala.annotation.meta.param;
 
 /**
  * 基础 Job 分装了通用方法
@@ -49,7 +52,15 @@ public abstract class BaseJob {
    * @param params 命令行参数
    */
   protected static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
-    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    StreamExecutionEnvironment env;
+    if (params.has(OUTPUT_USE_LOC) && params.getBoolean(OUTPUT_USE_LOC)) {
+      Configuration conf = new Configuration();
+      env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+    } else {
+      env = StreamExecutionEnvironment.getExecutionEnvironment();
+    }
+
+//    env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
 
     // We set max parallelism to a number with a lot of divisors
     env.setMaxParallelism(360);
