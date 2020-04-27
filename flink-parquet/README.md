@@ -1,5 +1,24 @@
 # Flink Parquet Tutorial
 
+## 开发环境
+### 启用 webui
+a. 添加依赖：
+```xml
+    <dependency>
+        <groupId>org.apache.flink</groupId>
+        <artifactId>flink-runtime-web_2.11</artifactId>
+        <version>${flink.version}</version>
+    </dependency>
+```
+b. 创建一个包括 WebUI 的本地执行环境:
+```java
+    Configuration conf = new Configuration();
+    env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+```
+参考：
+[ “baby” steps to develop a Flink application](https://www.ververica.com/blog/5-steps-flink-application-development)
+
+## Sink
 `StreamingFileSink` 同时支持逐行编码 (row-wise) 格式和块编码 (bulk-encoding) 格式，如 Apache Parquet。
 
 `StreamingFileSink.forRowFormat()` 行编码格式，默认策略根据文件大小和超时滚动文件

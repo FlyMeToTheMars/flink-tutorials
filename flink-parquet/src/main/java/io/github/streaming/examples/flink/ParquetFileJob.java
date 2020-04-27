@@ -45,9 +45,8 @@ public class ParquetFileJob extends BaseJob {
     long cpInterval = params.getLong("checkpoint.interval.millis", TimeUnit.MINUTES.toMillis(1));
     Path basePath = getOutPath(params);
     source
-        .keyBy("itemId")
-//        .timeWindow(Time.milliseconds(cpInterval))
-        .window(TumblingProcessingTimeWindows.of(Time.milliseconds(cpInterval)))
+        .keyBy("itemId") //注意我这里的写法
+        .timeWindow(Time.milliseconds(cpInterval)) //滚动窗口
         .process(new SortFunction())
         .name("Sort by itemId")
         .addSink(createParquetBulkSink(basePath, ItemTransaction.class, params))

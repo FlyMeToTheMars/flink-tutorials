@@ -1,7 +1,5 @@
-package io.github.streaming.examples.flink.sink;
+package io.github.streaming.examples.flink.sink.filesystem.bucketassigners;
 
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import org.apache.flink.streaming.api.functions.sink.filesystem.bucketassigners.DateTimeBucketAssigner;
 
 public class DateBucketAssigner<IN> extends DateTimeBucketAssigner<IN> {

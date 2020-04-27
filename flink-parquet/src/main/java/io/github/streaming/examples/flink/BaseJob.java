@@ -9,7 +9,9 @@ import static io.github.streaming.examples.flink.utils.ParquetUtils.createParque
 
 import com.cloudera.streaming.examples.flink.types.ItemTransaction;
 import com.cloudera.streaming.examples.flink.types.TransactionSchema;
-import io.github.streaming.examples.flink.sink.DateBucketAssigner;
+import io.github.streaming.examples.flink.sink.filesystem.bucketassigners.DateBucketAssigner;
+import io.github.streaming.examples.flink.sink.filesystem.rollingpolicies.CCheckpointRollingPolicy;
+import io.github.streaming.examples.flink.sink.filesystem.rollingpolicies.CCheckpointRollingPolicy.RollingPolicyBuilder;
 import io.github.streaming.examples.flink.utils.ParquetConfig;
 import io.github.streaming.examples.flink.utils.Utils;
 import java.io.File;
@@ -37,7 +39,6 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.io.OutputFile;
-import scala.annotation.meta.param;
 
 /**
  * 基础 Job 分装了通用方法
@@ -60,7 +61,7 @@ public abstract class BaseJob {
       env = StreamExecutionEnvironment.getExecutionEnvironment();
     }
 
-//    env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
+    env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
 
     // We set max parallelism to a number with a lot of divisors
     env.setMaxParallelism(360);
@@ -131,10 +132,15 @@ public abstract class BaseJob {
     final ParquetConfig parquetConfig = createParquetConfig(params.getProperties());
     // 创建工厂
     ParquetWriterFactory writerFactory = createWriterFactory(type, parquetConfig);
+    // 文件滚动策略
+    RollingPolicyBuilder rollingPolicyBuilder = CCheckpointRollingPolicy
+        .builder();
+    rollingPolicyBuilder.withMaxPartSize(1024L * 1024L * 128L);// 128M
+
     StreamingFileSink sink = StreamingFileSink.
         forBulkFormat(basePath, writerFactory)
         .withBucketAssigner(new DateBucketAssigner("yyyyMMdd"))
-//        .withBucketCheckInterval()
+        .withRollingPolicy(rollingPolicyBuilder.build())
         .build();
 
     return sink;
