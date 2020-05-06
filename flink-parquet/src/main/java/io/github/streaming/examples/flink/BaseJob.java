@@ -3,6 +3,7 @@ package io.github.streaming.examples.flink;
 import static io.github.streaming.examples.flink.utils.Constants.EVENT_TIME_KEY;
 import static io.github.streaming.examples.flink.utils.Constants.K_HDFS_OUTPUT;
 import static io.github.streaming.examples.flink.utils.Constants.K_KAFKA_TOPIC;
+import static io.github.streaming.examples.flink.utils.Constants.MAX_PART_SIZE;
 import static io.github.streaming.examples.flink.utils.Constants.OUTPUT_USE_LOC;
 import static io.github.streaming.examples.flink.utils.ParquetUtils.applyCommonConfig;
 import static io.github.streaming.examples.flink.utils.ParquetUtils.createParquetConfig;
@@ -132,10 +133,11 @@ public abstract class BaseJob {
     final ParquetConfig parquetConfig = createParquetConfig(params.getProperties());
     // 创建工厂
     ParquetWriterFactory writerFactory = createWriterFactory(type, parquetConfig);
-    // 文件滚动策略
-    RollingPolicyBuilder rollingPolicyBuilder = CCheckpointRollingPolicy
-        .builder();
-    rollingPolicyBuilder.withMaxPartSize(1024L * 1024L * 128L);// 128M
+    // 自定义滚动策略
+    RollingPolicyBuilder rollingPolicyBuilder = CCheckpointRollingPolicy.builder();
+    // 默认 128M
+    long maxPartSize = params.getLong(MAX_PART_SIZE, 1024L * 1024L * 128L);
+    rollingPolicyBuilder.withMaxPartSize(maxPartSize);// 128M
 
     StreamingFileSink sink = StreamingFileSink.
         forBulkFormat(basePath, writerFactory)

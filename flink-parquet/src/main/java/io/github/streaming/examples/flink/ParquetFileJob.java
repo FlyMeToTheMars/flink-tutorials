@@ -1,7 +1,10 @@
 package io.github.streaming.examples.flink;
 
+import static io.github.streaming.examples.flink.utils.ParquetUtils.PAGE_ROW_COUNT_LIMIT;
+
 import com.cloudera.streaming.examples.flink.operators.ItemTransactionGeneratorSource;
 import com.cloudera.streaming.examples.flink.types.ItemTransaction;
+import io.github.streaming.examples.flink.triggers.CountTriggerWithTimeout;
 import io.github.streaming.examples.flink.utils.Utils;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,11 +14,11 @@ import org.apache.commons.compress.utils.Lists;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
@@ -27,7 +30,6 @@ public class ParquetFileJob extends BaseJob {
   private static final Logger LOG = LoggerFactory.getLogger(ParquetFileJob.class);
 
   public static void main(String[] args) throws Exception {
-
     // 读取命令行参数
     ParameterTool params = Utils.parseArgs(args);
 
@@ -40,15 +42,21 @@ public class ParquetFileJob extends BaseJob {
         .addSource(new ItemTransactionGeneratorSource(params))
         .name("Item Transaction Generator");
 
-    // 3. Add Sink
-    // 注意： Bulk方式默认是按检查点策略滚动的
+    // 3. 添加 Sink
     long cpInterval = params.getLong("checkpoint.interval.millis", TimeUnit.MINUTES.toMillis(1));
+    // 页行数限制
+    int pageRowCountLimit = params.getInt(PAGE_ROW_COUNT_LIMIT, 20000);
     Path basePath = getOutPath(params);
+    //  Hash -> Window -> sink
     source
-        .keyBy("itemId") //注意我这里的写法
-        .timeWindow(Time.milliseconds(cpInterval)) //滚动窗口
-        .process(new SortFunction())
-        .name("Sort by itemId")
+        .keyBy("itemId")
+        .timeWindow(Time.milliseconds(cpInterval))
+        // 自定义触发器，防止窗口积压数据，这里以 pageRowCountLimit为阈值
+        .trigger(
+            new CountTriggerWithTimeout<>(pageRowCountLimit, TimeCharacteristic.ProcessingTime)
+        )
+        .process(new SortWindowFunction())
+        .name("Hash by itemId")
         .addSink(createParquetBulkSink(basePath, ItemTransaction.class, params))
         .name("Transaction HDFS Sink");
 
@@ -62,7 +70,7 @@ public class ParquetFileJob extends BaseJob {
    *
    * ProcessAllWindowFunction 能实现排序，有瓶颈
    */
-  private static class SortFunction extends
+  private static class SortWindowFunction extends
       ProcessWindowFunction<ItemTransaction, Object, Tuple, TimeWindow> {
 
     /**
