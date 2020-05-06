@@ -1,5 +1,6 @@
 package io.github.streaming.examples.flink;
 
+import static io.github.streaming.examples.flink.utils.Constants.CK_POINT_DATA_LOC;
 import static io.github.streaming.examples.flink.utils.Constants.EVENT_TIME_KEY;
 import static io.github.streaming.examples.flink.utils.Constants.K_HDFS_OUTPUT;
 import static io.github.streaming.examples.flink.utils.Constants.K_KAFKA_TOPIC;
@@ -59,7 +60,9 @@ public abstract class BaseJob {
     if (params.has(OUTPUT_USE_LOC) && params.getBoolean(OUTPUT_USE_LOC)) {
       Configuration conf = new Configuration();
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
-      env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
+      if (params.has(CK_POINT_DATA_LOC)) {
+        env.setStateBackend(new FsStateBackend(params.get(CK_POINT_DATA_LOC)));
+      }
     } else {
       env = StreamExecutionEnvironment.getExecutionEnvironment();
     }

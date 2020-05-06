@@ -15,6 +15,8 @@ public class Constants {
   public static final String MAX_PART_SIZE = "maxPartSize";
 
   public static final String OUTPUT_USE_LOC = "output.local";
+  public static final String CK_POINT_DATA_LOC = "checkpointDataUri.local";
+
 
   public static final String EVENT_TIME_KEY = "event.time";
 
