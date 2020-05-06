@@ -55,14 +55,14 @@ public abstract class BaseJob {
    */
   protected static StreamExecutionEnvironment createExecutionEnvironment(ParameterTool params) {
     StreamExecutionEnvironment env;
+    // 判断是否本地环境
     if (params.has(OUTPUT_USE_LOC) && params.getBoolean(OUTPUT_USE_LOC)) {
       Configuration conf = new Configuration();
       env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+      env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
     } else {
       env = StreamExecutionEnvironment.getExecutionEnvironment();
     }
-
-    env.setStateBackend(new FsStateBackend("file:///tmp/flink/checkpoints"));
 
     // We set max parallelism to a number with a lot of divisors
     env.setMaxParallelism(360);
@@ -90,7 +90,7 @@ public abstract class BaseJob {
    * 创建读取 Transaction 数据流，指定时间和水位线
    *
    * @param params 命令行参数
-   * @param env 执行环境
+   * @param env    执行环境
    */
   protected static DataStream<ItemTransaction> readTransactionStream(ParameterTool params,
       StreamExecutionEnvironment env) {
@@ -124,8 +124,8 @@ public abstract class BaseJob {
    * 创建 Parquet Bulk Sink
    *
    * @param basePath 基础路径
-   * @param type 写入的类的类型
-   * @param params 参数
+   * @param type     写入的类的类型
+   * @param params   参数
    */
   public static StreamingFileSink createParquetBulkSink(Path basePath, Class type,
       ParameterTool params) {
@@ -151,7 +151,7 @@ public abstract class BaseJob {
   /**
    * 为给定类型创建一个 ParquetWriterFactory，Parquet Writer 将使用Avro来反射性地创建该类型的 schema，并使用该模式来编写列类型数据
    *
-   * @param type 写入的类的类型.
+   * @param type          写入的类的类型.
    * @param parquetConfig Parquet 配置.
    */
   public static <T> ParquetWriterFactory<T> createWriterFactory(Class<T> type,
